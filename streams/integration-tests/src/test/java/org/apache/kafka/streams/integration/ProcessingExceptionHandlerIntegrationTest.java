@@ -422,6 +422,10 @@ public class ProcessingExceptionHandlerIntegrationTest {
         assertTrue(Arrays.asList("ID123-A2", "ID123-A5").contains((String) record.value()));
         assertEquals("TOPIC_NAME", context.topic());
         assertEquals("KSTREAM-PROCESSOR-0000000003", context.processorNodeId());
+        assertTrue(Arrays.equals("ID123-2-ERR".getBytes(), context.sourceRawKey())
+            || Arrays.equals("ID123-5-ERR".getBytes(), context.sourceRawKey()));
+        assertTrue(Arrays.equals("ID123-A2".getBytes(), context.sourceRawValue())
+            || Arrays.equals("ID123-A5".getBytes(), context.sourceRawValue()));
         assertEquals(TIMESTAMP.toEpochMilli(), context.timestamp());
         assertTrue(exception.getMessage().contains("Exception should be handled by processing exception handler"));
     }
