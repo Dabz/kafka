@@ -16,11 +16,10 @@
  */
 package org.apache.kafka.streams.state.internals;
 
-import org.apache.kafka.streams.processor.internals.ProcessorRecordContext;
-
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
+import org.apache.kafka.streams.processor.internals.ProcessorRecordContext;
 
 import static org.apache.kafka.common.utils.Utils.getNullableArray;
 import static org.apache.kafka.common.utils.Utils.getNullableSizePrefixedArray;

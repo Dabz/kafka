@@ -16,13 +16,13 @@
  */
 package org.apache.kafka.streams.state.internals;
 
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.streams.processor.internals.ProcessorRecordContext;
-
-import org.junit.jupiter.api.Test;
-
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.streams.processor.internals.ProcessorRecordContext;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -94,9 +94,23 @@ public class BufferValueTest {
         assertEquals(28L, new BufferValue(new byte[] {(byte) 0}, new byte[] {(byte) 1}, new byte[] {(byte) 0}, context).residentMemorySizeEstimate());
     }
 
-    @Test
-    public void shouldSerializeNulls() {
-        final ProcessorRecordContext context = new ProcessorRecordContext(0L, 0L, 0, "topic", new RecordHeaders());
+    @ParameterizedTest
+    @CsvSource(value = {
+        "null,null",
+        "rawKey,null",
+        "null,rawValue",
+        "rawKey,rawValue"
+    }, nullValues = "null")
+    public void shouldSerializeNulls(final String rawKey, final String rawValue) {
+        final ProcessorRecordContext context = new ProcessorRecordContext(
+            0L,
+            0L,
+            0,
+            "topic",
+            new RecordHeaders(),
+            rawKey != null ? rawKey.getBytes() : null,
+            rawValue != null ? rawValue.getBytes() : null
+        );
         final byte[] serializedContext = context.serialize();
         final byte[] bytes = new BufferValue(null, null, null, context).serialize(0).array();
         final byte[] withoutContext = Arrays.copyOfRange(bytes, serializedContext.length, bytes.length);
@@ -104,9 +118,23 @@ public class BufferValueTest {
         assertThat(withoutContext, is(ByteBuffer.allocate(Integer.BYTES * 3).putInt(-1).putInt(-1).putInt(-1).array()));
     }
 
-    @Test
-    public void shouldSerializePrior() {
-        final ProcessorRecordContext context = new ProcessorRecordContext(0L, 0L, 0, "topic", new RecordHeaders());
+    @ParameterizedTest
+    @CsvSource(value = {
+        "null,null",
+        "rawKey,null",
+        "null,rawValue",
+        "rawKey,rawValue"
+    }, nullValues = "null")
+    public void shouldSerializePrior(final String rawKey, final String rawValue) {
+        final ProcessorRecordContext context = new ProcessorRecordContext(
+            0L,
+            0L,
+            0,
+            "topic",
+            new RecordHeaders(),
+            rawKey != null ? rawKey.getBytes() : null,
+            rawValue != null ? rawValue.getBytes() : null
+        );
         final byte[] serializedContext = context.serialize();
         final byte[] priorValue = {(byte) 5};
         final byte[] bytes = new BufferValue(priorValue, null, null, context).serialize(0).array();
@@ -115,9 +143,23 @@ public class BufferValueTest {
         assertThat(withoutContext, is(ByteBuffer.allocate(Integer.BYTES * 3 + 1).putInt(1).put(priorValue).putInt(-1).putInt(-1).array()));
     }
 
-    @Test
-    public void shouldSerializeOld() {
-        final ProcessorRecordContext context = new ProcessorRecordContext(0L, 0L, 0, "topic", new RecordHeaders());
+    @ParameterizedTest
+    @CsvSource(value = {
+        "null,null",
+        "rawKey,null",
+        "null,rawValue",
+        "rawKey,rawValue"
+    }, nullValues = "null")
+    public void shouldSerializeOld(final String rawKey, final String rawValue) {
+        final ProcessorRecordContext context = new ProcessorRecordContext(
+            0L,
+            0L,
+            0,
+            "topic",
+            new RecordHeaders(),
+            rawKey != null ? rawKey.getBytes() : null,
+            rawValue != null ? rawValue.getBytes() : null
+        );
         final byte[] serializedContext = context.serialize();
         final byte[] oldValue = {(byte) 5};
         final byte[] bytes = new BufferValue(null, oldValue, null, context).serialize(0).array();
@@ -126,9 +168,23 @@ public class BufferValueTest {
         assertThat(withoutContext, is(ByteBuffer.allocate(Integer.BYTES * 3 + 1).putInt(-1).putInt(1).put(oldValue).putInt(-1).array()));
     }
 
-    @Test
-    public void shouldSerializeNew() {
-        final ProcessorRecordContext context = new ProcessorRecordContext(0L, 0L, 0, "topic", new RecordHeaders());
+    @ParameterizedTest
+    @CsvSource(value = {
+        "null,null",
+        "rawKey,null",
+        "null,rawValue",
+        "rawKey,rawValue"
+    }, nullValues = "null")
+    public void shouldSerializeNew(final String rawKey, final String rawValue) {
+        final ProcessorRecordContext context = new ProcessorRecordContext(
+            0L,
+            0L,
+            0,
+            "topic",
+            new RecordHeaders(),
+            rawKey != null ? rawKey.getBytes() : null,
+            rawValue != null ? rawValue.getBytes() : null
+        );
         final byte[] serializedContext = context.serialize();
         final byte[] newValue = {(byte) 5};
         final byte[] bytes = new BufferValue(null, null, newValue, context).serialize(0).array();
@@ -137,9 +193,23 @@ public class BufferValueTest {
         assertThat(withoutContext, is(ByteBuffer.allocate(Integer.BYTES * 3 + 1).putInt(-1).putInt(-1).putInt(1).put(newValue).array()));
     }
 
-    @Test
-    public void shouldCompactDuplicates() {
-        final ProcessorRecordContext context = new ProcessorRecordContext(0L, 0L, 0, "topic", new RecordHeaders());
+    @ParameterizedTest
+    @CsvSource(value = {
+        "null,null",
+        "rawKey,null",
+        "null,rawValue",
+        "rawKey,rawValue"
+    }, nullValues = "null")
+    public void shouldCompactDuplicates(final String rawKey, final String rawValue) {
+        final ProcessorRecordContext context = new ProcessorRecordContext(
+            0L,
+            0L,
+            0,
+            "topic",
+            new RecordHeaders(),
+            rawKey != null ? rawKey.getBytes() : null,
+            rawValue != null ? rawValue.getBytes() : null
+        );
         final byte[] serializedContext = context.serialize();
         final byte[] duplicate = {(byte) 5};
         final byte[] bytes = new BufferValue(duplicate, duplicate, null, context).serialize(0).array();
@@ -148,9 +218,23 @@ public class BufferValueTest {
         assertThat(withoutContext, is(ByteBuffer.allocate(Integer.BYTES * 3 + 1).putInt(1).put(duplicate).putInt(-2).putInt(-1).array()));
     }
 
-    @Test
-    public void shouldDeserializePrior() {
-        final ProcessorRecordContext context = new ProcessorRecordContext(0L, 0L, 0, "topic", new RecordHeaders());
+    @ParameterizedTest
+    @CsvSource(value = {
+        "null,null",
+        "rawKey,null",
+        "null,rawValue",
+        "rawKey,rawValue"
+    }, nullValues = "null")
+    public void shouldDeserializePrior(final String rawKey, final String rawValue) {
+        final ProcessorRecordContext context = new ProcessorRecordContext(
+            0L,
+            0L,
+            0,
+            "topic",
+            new RecordHeaders(),
+            rawKey != null ? rawKey.getBytes() : null,
+            rawValue != null ? rawValue.getBytes() : null
+        );
         final byte[] serializedContext = context.serialize();
         final byte[] priorValue = {(byte) 5};
         final ByteBuffer serialValue =
@@ -163,9 +247,23 @@ public class BufferValueTest {
         assertThat(deserialize, is(new BufferValue(priorValue, null, null, context)));
     }
 
-    @Test
-    public void shouldDeserializeOld() {
-        final ProcessorRecordContext context = new ProcessorRecordContext(0L, 0L, 0, "topic", new RecordHeaders());
+    @ParameterizedTest
+    @CsvSource(value = {
+        "null,null",
+        "rawKey,null",
+        "null,rawValue",
+        "rawKey,rawValue"
+    }, nullValues = "null")
+    public void shouldDeserializeOld(final String rawKey, final String rawValue) {
+        final ProcessorRecordContext context = new ProcessorRecordContext(
+            0L,
+            0L,
+            0,
+            "topic",
+            new RecordHeaders(),
+            rawKey != null ? rawKey.getBytes() : null,
+            rawValue != null ? rawValue.getBytes() : null
+        );
         final byte[] serializedContext = context.serialize();
         final byte[] oldValue = {(byte) 5};
         final ByteBuffer serialValue =
@@ -177,9 +275,23 @@ public class BufferValueTest {
         assertThat(BufferValue.deserialize(serialValue), is(new BufferValue(null, oldValue, null, context)));
     }
 
-    @Test
-    public void shouldDeserializeNew() {
-        final ProcessorRecordContext context = new ProcessorRecordContext(0L, 0L, 0, "topic", new RecordHeaders());
+    @ParameterizedTest
+    @CsvSource(value = {
+        "null,null",
+        "rawKey,null",
+        "null,rawValue",
+        "rawKey,rawValue"
+    }, nullValues = "null")
+    public void shouldDeserializeNew(final String rawKey, final String rawValue) {
+        final ProcessorRecordContext context = new ProcessorRecordContext(
+            0L,
+            0L,
+            0,
+            "topic",
+            new RecordHeaders(),
+            rawKey != null ? rawKey.getBytes() : null,
+            rawValue != null ? rawValue.getBytes() : null
+        );
         final byte[] serializedContext = context.serialize();
         final byte[] newValue = {(byte) 5};
         final ByteBuffer serialValue =
@@ -191,9 +303,23 @@ public class BufferValueTest {
         assertThat(BufferValue.deserialize(serialValue), is(new BufferValue(null, null, newValue, context)));
     }
 
-    @Test
-    public void shouldDeserializeCompactedDuplicates() {
-        final ProcessorRecordContext context = new ProcessorRecordContext(0L, 0L, 0, "topic", new RecordHeaders());
+    @ParameterizedTest
+    @CsvSource(value = {
+        "null,null",
+        "rawKey,null",
+        "null,rawValue",
+        "rawKey,rawValue"
+    }, nullValues = "null")
+    public void shouldDeserializeCompactedDuplicates(final String rawKey, final String rawValue) {
+        final ProcessorRecordContext context = new ProcessorRecordContext(
+            0L,
+            0L,
+            0,
+            "topic",
+            new RecordHeaders(),
+            rawKey != null ? rawKey.getBytes() : null,
+            rawValue != null ? rawValue.getBytes() : null
+        );
         final byte[] serializedContext = context.serialize();
         final byte[] duplicate = {(byte) 5};
         final ByteBuffer serialValue =

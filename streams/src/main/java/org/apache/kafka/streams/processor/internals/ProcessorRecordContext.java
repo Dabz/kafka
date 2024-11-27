@@ -16,19 +16,20 @@
  */
 package org.apache.kafka.streams.processor.internals;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
+import static org.apache.kafka.common.utils.Utils.getNullableSizePrefixedArray;
+import static org.apache.kafka.common.utils.Utils.getOptionalField;
+
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Objects;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.streams.processor.RecordContext;
 import org.apache.kafka.streams.processor.api.RecordMetadata;
-
-import java.nio.ByteBuffer;
-import java.util.Objects;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
-import static org.apache.kafka.common.utils.Utils.getNullableSizePrefixedArray;
 
 public class ProcessorRecordContext implements RecordContext, RecordMetadata {
 
@@ -37,6 +38,8 @@ public class ProcessorRecordContext implements RecordContext, RecordMetadata {
     private final String topic;
     private final int partition;
     private final Headers headers;
+    private byte[] sourceRawKey;
+    private byte[] sourceRawValue;
 
     public ProcessorRecordContext(final long timestamp,
                                   final long offset,
@@ -48,6 +51,24 @@ public class ProcessorRecordContext implements RecordContext, RecordMetadata {
         this.topic = topic;
         this.partition = partition;
         this.headers = Objects.requireNonNull(headers);
+        this.sourceRawKey = null;
+        this.sourceRawValue = null;
+    }
+
+    public ProcessorRecordContext(final long timestamp,
+                                  final long offset,
+                                  final int partition,
+                                  final String topic,
+                                  final Headers headers,
+                                  final byte[] sourceRawKey,
+                                  final byte[] sourceRawValue) {
+        this.timestamp = timestamp;
+        this.offset = offset;
+        this.topic = topic;
+        this.partition = partition;
+        this.headers = Objects.requireNonNull(headers);
+        this.sourceRawKey = sourceRawKey;
+        this.sourceRawValue = sourceRawValue;
     }
 
     @Override
@@ -73,6 +94,16 @@ public class ProcessorRecordContext implements RecordContext, RecordMetadata {
     @Override
     public Headers headers() {
         return headers;
+    }
+
+    @Override
+    public byte[] sourceRawKey() {
+        return sourceRawKey;
+    }
+
+    @Override
+    public byte[] sourceRawValue() {
+        return sourceRawValue;
     }
 
     public long residentMemorySizeEstimate() {
@@ -124,6 +155,18 @@ public class ProcessorRecordContext implements RecordContext, RecordMetadata {
             headerValuesBytes[i] = valueBytes;
         }
 
+        if (sourceRawKey != null) {
+            size += Character.BYTES; // marker for sourceRawKey being present
+            size += Integer.BYTES; // size of sourceRawKey
+            size += sourceRawKey.length;
+        }
+
+        if (sourceRawValue != null) {
+            size += Character.BYTES; // marker for sourceRawValue being present
+            size += Integer.BYTES; // size of sourceRawValue
+            size += sourceRawValue.length;
+        }
+
         final ByteBuffer buffer = ByteBuffer.allocate(size);
         buffer.putLong(timestamp);
         buffer.putLong(offset);
@@ -144,6 +187,18 @@ public class ProcessorRecordContext implements RecordContext, RecordMetadata {
             } else {
                 buffer.putInt(-1);
             }
+        }
+
+        if (sourceRawKey != null) {
+            buffer.putChar('k');
+            buffer.putInt(sourceRawKey.length);
+            buffer.put(sourceRawKey);
+        }
+
+        if (sourceRawValue != null) {
+            buffer.putChar('v');
+            buffer.putInt(sourceRawValue.length);
+            buffer.put(sourceRawValue);
         }
 
         return buffer.array();
@@ -173,7 +228,15 @@ public class ProcessorRecordContext implements RecordContext, RecordMetadata {
             headers = new RecordHeaders(headerArr);
         }
 
-        return new ProcessorRecordContext(timestamp, offset, partition, topic, headers);
+        final byte[] rawKey = getOptionalField('k', buffer).orElse(null);
+        final byte[] rawValue = getOptionalField('v', buffer).orElse(null);
+
+        return new ProcessorRecordContext(timestamp, offset, partition, topic, headers, rawKey, rawValue);
+    }
+
+    public void freeRawRecord() {
+        this.sourceRawKey = null;
+        this.sourceRawValue = null;
     }
 
     @Override
@@ -189,7 +252,9 @@ public class ProcessorRecordContext implements RecordContext, RecordMetadata {
             offset == that.offset &&
             partition == that.partition &&
             Objects.equals(topic, that.topic) &&
-            Objects.equals(headers, that.headers);
+            Objects.equals(headers, that.headers) &&
+            Arrays.equals(sourceRawKey, that.sourceRawKey) &&
+            Arrays.equals(sourceRawValue, that.sourceRawValue);
     }
 
     /**

@@ -16,6 +16,9 @@
  */
 package org.apache.kafka.common.utils;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.util.Optional;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -312,6 +315,30 @@ public final class Utils {
     public static byte[] getNullableSizePrefixedArray(final ByteBuffer buffer) {
         final int size = buffer.getInt();
         return getNullableArray(buffer, size);
+    }
+
+    /**
+     * Starting from the current position, read an optional marker char indicating the presence of a byte array to read.
+     * If the marker is present, read the size of the byte array to read, then read the array.
+     * If the marker is not present, reset the buffer to the saved position and return an empty Optional.
+     * @param marker The marker char to indicate the presence of a byte array
+     * @param buffer The buffer to read a size-prefixed array from
+     * @return The array
+     */
+    public static Optional<byte[]> getOptionalField(final char marker, final ByteBuffer buffer) {
+        if (buffer.remaining() < Character.BYTES) {
+            return Optional.empty();
+        }
+
+        buffer.mark();
+
+        char serializedMarker = buffer.getChar();
+        if (serializedMarker == marker) {
+            return Optional.of(getNullableSizePrefixedArray(buffer));
+        }
+
+        buffer.reset(); // marker is not present, reset the buffer to the saved position
+        return Optional.empty();
     }
 
     /**
