@@ -341,7 +341,7 @@ public class RecordCollectorImpl implements RecordCollector {
                     serializationException,
                     origin
                 ),
-                "Invalid ProductionExceptionHandler response."
+                "Invalid ProductionExceptionResponse response."
             );
         } catch (final Exception fatalUserException) {
             // while Java distinguishes checked vs unchecked exceptions, other languages
@@ -476,7 +476,7 @@ public class RecordCollectorImpl implements RecordCollector {
                         serializedRecord,
                         productionException
                     ),
-                    "Invalid ProductionExceptionHandler response."
+                    "Invalid ProductionExceptionResponse response."
                 );
             } catch (final Exception fatalUserException) {
                 // while Java distinguishes checked vs unchecked exceptions, other languages
