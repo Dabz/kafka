@@ -51,7 +51,6 @@ import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.errors.DefaultProductionExceptionHandler;
 import org.apache.kafka.streams.errors.ErrorHandlerContext;
 import org.apache.kafka.streams.errors.ProductionExceptionHandler;
-import org.apache.kafka.streams.errors.ProductionExceptionHandler.ProductionExceptionHandlerResponse;
 import org.apache.kafka.streams.errors.ProductionExceptionHandler.SerializationExceptionOrigin;
 import org.apache.kafka.streams.errors.StreamsException;
 import org.apache.kafka.streams.errors.TaskCorruptedException;
@@ -1200,7 +1199,7 @@ public class RecordCollectorTest {
             logContext,
             taskId,
             getExceptionalStreamsProducerOnSend(exception),
-            new ProductionExceptionHandlerMock(Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.continueProcessing())),
+            new ProductionExceptionHandlerMock(Optional.of(ProductionExceptionHandler.Response.resume())),
             streamsMetrics,
             topology
         );
@@ -1227,7 +1226,7 @@ public class RecordCollectorTest {
             logContext,
             taskId,
             getExceptionalStreamsProducerOnSend(exception),
-            new ProductionExceptionHandlerMock(Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.continueProcessing())),
+            new ProductionExceptionHandlerMock(Optional.of(ProductionExceptionHandler.Response.resume())),
             streamsMetrics,
             topology
         );
@@ -1251,7 +1250,7 @@ public class RecordCollectorTest {
             logContext,
             taskId,
             getExceptionalStreamsProducerOnSend(exception),
-            new ProductionExceptionHandlerMock(Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.continueProcessing())),
+            new ProductionExceptionHandlerMock(Optional.of(ProductionExceptionHandler.Response.resume())),
             streamsMetrics,
             topology
         );
@@ -1275,7 +1274,7 @@ public class RecordCollectorTest {
             taskId,
             getExceptionalStreamsProducerOnSend(new RuntimeException("KABOOM!")),
             new ProductionExceptionHandlerMock(
-                Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.continueProcessing()),
+                Optional.of(ProductionExceptionHandler.Response.resume()),
                 context,
                 sinkNodeName,
                 taskId
@@ -1346,7 +1345,7 @@ public class RecordCollectorTest {
             taskId,
             getExceptionalStreamsProducerOnSend(exception),
             new ProductionExceptionHandlerMock(
-                Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.failProcessing()),
+                Optional.of(ProductionExceptionHandler.Response.fail()),
                 context,
                 sinkNodeName,
                 taskId
@@ -1376,7 +1375,7 @@ public class RecordCollectorTest {
             taskId,
             getExceptionalStreamsProducerOnSend(exception),
             new ProductionExceptionHandlerMock(
-                Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.continueProcessing()),
+                Optional.of(ProductionExceptionHandler.Response.resume()),
                 context,
                 sinkNodeName,
                 taskId
@@ -1399,7 +1398,7 @@ public class RecordCollectorTest {
                 taskId,
                 getExceptionalStreamsProducerOnSend(exception),
                 new ProductionExceptionHandlerMock(
-                    Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.retryProcessing()),
+                    Optional.of(ProductionExceptionHandler.Response.retry()),
                     context,
                     sinkNodeName,
                     taskId
@@ -1534,7 +1533,7 @@ public class RecordCollectorTest {
     public void shouldDropRecordExceptionUsingAlwaysContinueExceptionHandler() {
         try (final ErrorStringSerializer errorSerializer = new ErrorStringSerializer()) {
             final RecordCollector collector = newRecordCollector(new ProductionExceptionHandlerMock(
-                Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.continueProcessing()),
+                Optional.of(ProductionExceptionHandler.Response.resume()),
                 context,
                 sinkNodeName,
                 taskId,
@@ -1563,7 +1562,7 @@ public class RecordCollectorTest {
     public void shouldThrowStreamsExceptionWhenValueSerializationFailedAndProductionExceptionHandlerRepliesWithFail() {
         try (final ErrorStringSerializer errorSerializer = new ErrorStringSerializer()) {
             final RecordCollector collector = newRecordCollector(new ProductionExceptionHandlerMock(
-                Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.failProcessing()),
+                Optional.of(ProductionExceptionHandler.Response.fail()),
                 context,
                 sinkNodeName,
                 taskId,
@@ -1584,7 +1583,7 @@ public class RecordCollectorTest {
     public void shouldThrowStreamsExceptionWhenKeySerializationFailedAndProductionExceptionHandlerRepliesWithFail() {
         try (final ErrorStringSerializer errorSerializer = new ErrorStringSerializer()) {
             final RecordCollector collector = newRecordCollector(new ProductionExceptionHandlerMock(
-                Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.failProcessing()),
+                Optional.of(ProductionExceptionHandler.Response.fail()),
                 context,
                 sinkNodeName,
                 taskId,
@@ -1794,7 +1793,7 @@ public class RecordCollectorTest {
     public void shouldNotCallProductionExceptionHandlerOnClassCastException() {
         try (final ErrorStringSerializer errorSerializer = new ErrorStringSerializer()) {
             final RecordCollector collector = newRecordCollector(
-                new ProductionExceptionHandlerMock(Optional.of(ProductionExceptionHandler.ProductionExceptionResponse.continueProcessing()))
+                new ProductionExceptionHandlerMock(Optional.of(ProductionExceptionHandler.Response.resume()))
             );
             collector.initialize();
 
@@ -2016,7 +2015,7 @@ public class RecordCollectorTest {
     }
 
     public static class ProductionExceptionHandlerMock implements ProductionExceptionHandler {
-        private final Optional<ProductionExceptionResponse> response;
+        private final Optional<Response> response;
         private boolean shouldThrowException;
         private InternalProcessorContext<Void, Void> expectedContext;
         private String expectedProcessorNodeId;
@@ -2033,11 +2032,11 @@ public class RecordCollectorTest {
             this.expectedSerializationExceptionOrigin = null;
         }
 
-        public ProductionExceptionHandlerMock(final Optional<ProductionExceptionResponse> response) {
+        public ProductionExceptionHandlerMock(final Optional<Response> response) {
             this.response = response;
         }
 
-        public ProductionExceptionHandlerMock(final Optional<ProductionExceptionResponse> response,
+        public ProductionExceptionHandlerMock(final Optional<Response> response,
                                               final InternalProcessorContext<Void, Void> context,
                                               final String processorNodeId,
                                               final TaskId taskId) {
@@ -2057,7 +2056,7 @@ public class RecordCollectorTest {
             this.shouldThrowException = shouldThrowException;
         }
 
-        public ProductionExceptionHandlerMock(final Optional<ProductionExceptionResponse> response,
+        public ProductionExceptionHandlerMock(final Optional<Response> response,
                                               final InternalProcessorContext<Void, Void> context,
                                               final String processorNodeId,
                                               final TaskId taskId,
@@ -2068,9 +2067,9 @@ public class RecordCollectorTest {
         }
 
         @Override
-        public ProductionExceptionResponse handleError(final ErrorHandlerContext context,
-                                                         final ProducerRecord<byte[], byte[]> record,
-                                                         final Exception exception) {
+        public Response handleError(final ErrorHandlerContext context,
+                                    final ProducerRecord<byte[], byte[]> record,
+                                    final Exception exception) {
             assertInputs(context, exception);
             if (shouldThrowException) {
                 throw new RuntimeException("CRASH");
@@ -2080,10 +2079,10 @@ public class RecordCollectorTest {
 
         @SuppressWarnings("rawtypes")
         @Override
-        public ProductionExceptionResponse handleSerializationError(final ErrorHandlerContext context,
-                                                                               final ProducerRecord record,
-                                                                               final Exception exception,
-                                                                               final SerializationExceptionOrigin origin) {
+        public Response handleSerializationError(final ErrorHandlerContext context,
+                                                 final ProducerRecord record,
+                                                 final Exception exception,
+                                                 final SerializationExceptionOrigin origin) {
             assertInputs(context, exception);
             assertEquals(expectedSerializationExceptionOrigin, origin);
             if (shouldThrowException) {

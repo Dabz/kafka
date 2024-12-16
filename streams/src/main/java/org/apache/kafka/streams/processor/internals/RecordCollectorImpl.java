@@ -332,7 +332,7 @@ public class RecordCollectorImpl implements RecordCollector {
 
         final ProducerRecord<K, V> record = new ProducerRecord<>(topic, partition, timestamp, key, value, headers);
 
-        final ProductionExceptionHandler.ProductionExceptionResponse response;
+        final ProductionExceptionHandler.Response response;
         try {
             response = Objects.requireNonNull(
                 productionExceptionHandler.handleSerializationError(
@@ -375,7 +375,7 @@ public class RecordCollectorImpl implements RecordCollector {
             }
         }
 
-        if (maybeFailResponse(response.response()) == ProductionExceptionHandler.ProductionExceptionHandlerResponse.FAIL) {
+        if (maybeFailResponse(response.result()) == ProductionExceptionHandler.Result.FAIL) {
             throw new StreamsException(
                 String.format(
                     "Unable to serialize record. ProducerRecord(topic=[%s], partition=[%d], timestamp=[%d]",
@@ -468,7 +468,7 @@ public class RecordCollectorImpl implements RecordCollector {
             // TransactionAbortedException is only thrown after `abortTransaction()` was called,
             // so it's only a followup error, and Kafka Streams is already handling the original error
         } else {
-            final ProductionExceptionHandler.ProductionExceptionResponse response;
+            final ProductionExceptionHandler.Response response;
             try {
                 response = Objects.requireNonNull(
                     productionExceptionHandler.handleError(
@@ -509,14 +509,14 @@ public class RecordCollectorImpl implements RecordCollector {
                 }
             }
 
-            if (productionException instanceof RetriableException && response.response() == ProductionExceptionHandler.ProductionExceptionHandlerResponse.RETRY) {
+            if (productionException instanceof RetriableException && response.result() == ProductionExceptionHandler.Result.RETRY) {
                 errorMessage += "\nThe broker is either slow or in bad state (like not having enough replicas) in responding the request, " +
                     "or the connection to broker was interrupted sending the request or receiving the response. " +
                     "\nConsider overwriting `max.block.ms` and /or " +
                     "`delivery.timeout.ms` to a larger value to wait longer for such scenarios and avoid timeout errors";
                 sendException.set(new TaskCorruptedException(Collections.singleton(taskId)));
             } else {
-                if (maybeFailResponse(response.response()) == ProductionExceptionHandler.ProductionExceptionHandlerResponse.FAIL) {
+                if (maybeFailResponse(response.result()) == ProductionExceptionHandler.Result.FAIL) {
                     errorMessage += "\nException handler choose to FAIL the processing, no more records would be sent.";
                     sendException.set(new StreamsException(errorMessage, productionException));
                 } else {
@@ -529,12 +529,12 @@ public class RecordCollectorImpl implements RecordCollector {
         log.error(errorMessage, productionException);
     }
 
-    private ProductionExceptionHandler.ProductionExceptionHandlerResponse maybeFailResponse(final ProductionExceptionHandler.ProductionExceptionHandlerResponse response) {
-        if (response == ProductionExceptionHandler.ProductionExceptionHandlerResponse.RETRY) {
+    private ProductionExceptionHandler.Result maybeFailResponse(final ProductionExceptionHandler.Result result) {
+        if (result == ProductionExceptionHandler.Result.RETRY) {
             log.warn("ProductionExceptionHandler returned RETRY for a non-retriable exception. Will treat it as FAIL.");
-            return ProductionExceptionHandler.ProductionExceptionHandlerResponse.FAIL;
+            return ProductionExceptionHandler.Result.FAIL;
         } else {
-            return response;
+            return result;
         }
     }
 
